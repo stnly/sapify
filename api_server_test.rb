@@ -7,7 +7,7 @@ require 'jsonify'
 
 set :environment, :test
 
-describe 'The REST API server' do
+describe 'The REST API endpoint' do
   include Rack::Test::Methods
 
   def app
@@ -17,7 +17,7 @@ describe 'The REST API server' do
   it "returns all user ids" do
     get '/api/users/'
     last_response.should be_ok
-    data = JSON.parse(last_response.body)
+    data = JSON.parse last_response.body
     data['status'].should == 'ok'
     data['users'][0].should == '1'
     data['users'][1].should == '2'
@@ -26,16 +26,16 @@ describe 'The REST API server' do
   it 'returns empty user details if user does not exist' do
     get '/api/users/100'
     last_response.should be_ok
-    data = JSON.parse(last_response.body)
+    data = JSON.parse last_response.body
     data['status'].should == 'error'
     data['id'].should == 'none'
     data['name'].should == 'none'
   end
 
-  it 'returns correct user details' do
+  it 'returns individual user details' do
     get '/api/users/1'
     last_response.should be_ok
-    data = JSON.parse(last_response.body)
+    data = JSON.parse last_response.body
     data['status'].should == 'ok'
     data['id'].should == '1'
     data['name'].should == 'John'
@@ -48,25 +48,25 @@ describe 'The REST API server' do
     
     post '/api/users/', json.compile!
     last_response.should be_ok
-    data = JSON.parse(last_response.body)
+    data = JSON.parse last_response.body
     data['status'].should == 'ok'
     data['id'].should == '3'
     data['name'].should == 'Sarah'
   end
 
-  it 'does not create a user that already exists' do
+  it 'rejects request to create user if user already exist' do
     json = Jsonify::Builder.new
     json.id '3'
     json.name 'Sarah'
 
     post '/api/users/', json.compile!
     last_response.should be_ok
-    data = JSON.parse(last_response.body)
+    data = JSON.parse last_response.body
     data['status'].should == 'error'
     data['reason'].should == 'user already exists'
   end
 
-  it 'does not accept bad json when creating user' do
+  it 'rejects request to create user with bad json' do
     json = Jsonify::Builder.new
     json.id '4'
 
@@ -83,5 +83,49 @@ describe 'The REST API server' do
     last_response.should be_ok
     data_second = JSON.parse last_response.body
     data_first.should == data_second
+  end
+
+  it 'modifies user details' do
+    json = Jsonify::Builder.new
+    json.id '1'
+    json.name 'Jon'
+
+    put '/api/users/1', json.compile!
+    last_response.should be_ok
+    data = JSON.parse last_response.body
+    data['status'].should == 'ok'
+    data['id'].should == '1'
+    data['name'].should == 'Jon'
+  end
+
+  it 'rejects request to modify user details with bad json' do
+    json = Jsonify::Builder.new
+    json.id '3'
+    
+    put '/api/users/3', json.compile!
+    last_response.should be_ok
+    data_first = JSON.parse last_response.body
+    data_first['status'].should == 'error'
+    data_first['reason'].should == 'bad request'
+
+    json = Jsonify::Builder.new
+    json.name 'Sara'
+
+    put '/api/users/3', json.compile!
+    last_response.should be_ok
+    data_second = JSON.parse last_response.body
+    data_first.should == data_second
+  end
+
+  it 'rejects request to modify details if user does not exist' do
+    json = Jsonify::Builder.new
+    json.id '10'
+    json.name 'Tom'
+
+    put '/api/users/10', json.compile!
+    last_response.should be_ok
+    data = JSON.parse last_response.body
+    data['status'].should == 'error'
+    data['reason'].should == 'user does not exist'
   end
 end
