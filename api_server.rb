@@ -36,7 +36,7 @@ get '/api/users/:id' do
     json.id person.id
     json.name person.name
 
-    status 200 # OK
+    status 200
     content_type 'application/json'
     body json.compile!
   else
@@ -73,6 +73,41 @@ post '/api/users/' do
     else
       person = Person.new(data['id'], data['name'])
       user[data['id']] = person
+      json = Jsonify::Builder.new
+      json.status 'ok'
+      json.id data['id']
+      json.name data['name']
+
+      status 200
+      content_type 'application/json'
+      body json.compile!
+    end
+  end
+end
+
+put '/api/users/:id' do
+  data = JSON.parse(request.body.string)
+  if data.nil? or !data.has_key?('id') or !data.has_key?('name') then
+    json = Jsonify::Builder.new
+    json.status 'error'
+    json.reason 'bad request'
+
+    status 200
+    content_type 'application/json'
+    body json.compile!
+  else
+    if !user[data['id']] then
+      json = Jsonify::Builder.new
+      json.status 'error'
+      json.reason 'user does not exist'
+
+      status 200
+      content_type 'application/json'
+      body json.compile!
+    else
+      person = Person.new(data['id'], data['name'])
+      user[data['id']] = person
+      
       json = Jsonify::Builder.new
       json.status 'ok'
       json.id data['id']
