@@ -18,7 +18,6 @@ peter = Person.new('2', 'Peter')
 
 user = { '1' => john, '2' => peter}
 
-
 get '/api/users/' do
   json = Jsonify::Builder.new
   json.status 'ok'
@@ -40,7 +39,6 @@ get '/api/users/:id' do
     status 200 # OK
     content_type 'application/json'
     body json.compile!
-
   else
     json = Jsonify::Builder.new
     json.status 'error'
@@ -51,4 +49,38 @@ get '/api/users/:id' do
     content_type 'application/json'
     body json.compile!
   end
+end
+
+post '/api/users/' do
+  data = JSON.parse(request.body.string)
+  if data.nil? or !data.has_key?('id') or !data.has_key?('name') then
+    json = Jsonify::Builder.new
+    json.status 'error'
+    json.reason 'bad request'
+
+    status 200
+    content_type 'application/json'
+    body json.compile!
+  else
+    if user[data['id']] then
+      json = Jsonify::Builder.new
+      json.status 'error'
+      json.reason 'user already exists'
+
+      status 200
+      content_type 'application/json'
+      body json.compile!
+    else
+      person = Person.new(data['id'], data['name'])
+      user[data['id']] = person
+      json = Jsonify::Builder.new
+      json.status 'ok'
+      json.id data['id']
+      json.name data['name']
+
+      status 200
+      content_type 'application/json'
+      body json.compile!
+    end
+  end 
 end
